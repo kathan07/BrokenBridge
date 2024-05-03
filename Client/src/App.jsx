@@ -8,7 +8,7 @@ function App() {
   let signer;
   let provider;
   const contractAddress = "0xE5303408f154c00907F7AEbdBe492198694f7411";
-  const link_tokenAddress = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
+  const link_tokenAddress = "0x779877A7B0D9E8603169DdbD7836e478b4624789";
 
   const [addr, setAddr] = useState(""); //destination addr
   const [amount, setAmount] = useState("");
