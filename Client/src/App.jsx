@@ -15,6 +15,7 @@ function App() {
   const [balance, setBalance] = useState(0);
   const [accountAddr, setAccountAddr] = useState("");
   const [connected, setConnected] = useState(false);
+  const [signerAddr, setSignerAddr] = useState(null);
 
   const connect = async () => {
     try {
@@ -24,13 +25,13 @@ function App() {
       // console.log(provider);
       signer = provider.getSigner();
       // console.log(signer);
+      setSignerAddr(signer);
+
       const accAddr = await signer.getAddress();
       setAccountAddr(accAddr);
       setConnected(true);
       await checkbalance(signer);
       // await sendTransaction("0.02");
-      await approveSpending("10");
-      await sendTokensToContract("10");
     } catch (error) {
       console.log(error);
     }
@@ -46,14 +47,16 @@ function App() {
     const balance = await signer.getBalance();
     setBalance(balance);
   };
-
-  const approveSpending = async (tokenAmount) => {
+  /*
+  const approveSpending = async (e, tokenAmount) => {
+    e.preventDefault();
+    // console.log(provider);
     try {
       const approvedAmount = ethers.utils.parseUnits(
         tokenAmount.toString(),
         18
       ); // Convert token amount to Wei
-      const tokenContractWithSigner = tokenContract.connect(signer);
+      const tokenContractWithSigner = tokenContract.connect(signerAddr);
       const tx = await tokenContractWithSigner.approve(
         contractAddress,
         approvedAmount
@@ -64,7 +67,7 @@ function App() {
       console.error("Approval failed:", error);
     }
   };
-
+*/
   // const sendTransaction = async (amount) => {
   //   const tx = await signer.sendTransaction({
   //     to: contractAddress,
@@ -73,10 +76,11 @@ function App() {
   //   console.log(tx);
   // };
 
-  const sendTokensToContract = async (tokenAmount) => {
+  const sendTokensToContract = async (e, tokenAmount) => {
+    e.preventDefault();
     try {
       const amountToSend = ethers.utils.parseUnits(tokenAmount.toString(), 18); // Convert token amount to Wei
-      const tokenContractWithSigner = tokenContract.connect(signer);
+      const tokenContractWithSigner = tokenContract.connect(signerAddr);
       const tx = await tokenContractWithSigner.transfer(
         contractAddress,
         amountToSend
@@ -113,7 +117,7 @@ function App() {
                   Destination Address
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   className="form-control"
                   id="exampleInputEmail1"
                   aria-describedby="emailHelp"
@@ -123,7 +127,7 @@ function App() {
               </div>
               <div className="mb-3">
                 <label htmlFor="exampleInputPassword1" className="form-label">
-                  Password
+                  Amount (max 10 tokens)
                 </label>
                 <input
                   type="text"
@@ -138,8 +142,10 @@ function App() {
               type="submit"
               className="btn btn-danger mb-3"
               onClick={(e) => {
-                console.log(addr);
-                console.log(amount);
+                // console.log(addr);
+                // console.log(amount);
+                // approveSpending(e, amount);
+                sendTokensToContract(e, amount);
                 setAddr("");
                 setAmount("");
               }}
