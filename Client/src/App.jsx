@@ -1,120 +1,210 @@
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ethers } from "ethers";
-import linktoken_abi from "../linktoken_abi.json";
-import Button from "@mui/material/Button";
+import link_abi from "../link_abi.json";
+import bridge_abi from "../bridge_abi.json";
+import bnm_abi from "../bnm_abi.json";
 
 function App() {
-  let signer;
-  let provider;
-  const contractAddress = "0xE5303408f154c00907F7AEbdBe492198694f7411";
-  const link_tokenAddress = "0x779877A7B0D9E8603169DdbD7836e478b4624789";
+  const bridge_Address = "0xE5303408f154c00907F7AEbdBe492198694f7411";
+  const link_Address = "0x779877A7B0D9E8603169DdbD7836e478b4624789";
+  const bnm_Address = "0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05";
 
   const [addr, setAddr] = useState(""); //destination addr
   const [amount, setAmount] = useState("");
-  const [balance, setBalance] = useState(0);
-  const [accountAddr, setAccountAddr] = useState("");
+  const [accountAddress, setAccountAddress] = useState(null);
   const [connected, setConnected] = useState(false);
-  const [signerAddr, setSignerAddr] = useState(null);
-  const [txStatus, setTxStatus] = useState("not-initialized");
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
+  const [link, setlink] = useState(null);
+  const [bridge, setbridge] = useState(null);
+  const [bnm, setbnm] = useState(null);
+
+  const hexToNumber = (hex) =>
+    parseInt(hex.startsWith("0x") ? hex.slice(2) : hex, 16);
+  const numberToString = (num) => String(num);
 
   const connect = async () => {
     try {
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      // MetaMask requires requesting permission to connect users accounts
-      await provider.send("eth_requestAccounts", []);
-      // console.log(provider);
-      signer = provider.getSigner();
-      // console.log(signer);
-      setSignerAddr(signer);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      setProvider(provider);
 
-      const accAddr = await signer.getAddress();
-      setAccountAddr(accAddr);
-      setConnected(true);
-      await checkbalance(signer);
-      // await sendTransaction("0.02");
+      await provider.send("eth_requestAccounts", []);
+
+      const signer = provider.getSigner();
+      setSigner(signer);
+
+      const address = await signer.getAddress();
+      setAccountAddress(address);
+
+      setConnected(true); // setting connected state to true
+
+      const link = await new ethers.Contract(
+        link_Address,
+        link_abi.result,
+        signer
+      );
+      setlink(link);
+      const bridge = await new ethers.Contract(
+        bridge_Address,
+        bridge_abi.result,
+        signer
+      );
+      setbridge(bridge);
+      const bnm = await new ethers.Contract(
+        bnm_Address,
+        bnm_abi.result,
+        signer
+      );
+      setbnm(bnm);
     } catch (error) {
       console.log(error);
     }
   };
 
-  const tokenContract = new ethers.Contract(
-    link_tokenAddress,
-    linktoken_abi.result,
-    signer
-  );
-
-  const checkbalance = async (signer) => {
-    const balance = await signer.getBalance();
-    setBalance(balance);
+  const disconnect = async () => {
+    try {
+      if (window.ethereum && window.ethereum.isMetaMask) {
+        // Reset the provider and signer
+        setProvider(null);
+        setSigner(null);
+        setAccountAddress(null);
+        setConnected(false); // setting connected state to false
+        // Request eth_accounts permission again
+        // await window.ethereum.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const sendTokensToContract = async (e, tokenAmount) => {
-    e.preventDefault();
+  const getfees = async (addr, amount) => {
     try {
-      const amountToSend = ethers.utils.parseUnits(tokenAmount.toString(), 18); // Convert token amount to Wei
-      const tokenContractWithSigner = tokenContract.connect(signerAddr);
-      const tx = await tokenContractWithSigner.transfer(
-        contractAddress,
-        amountToSend
+      let fees = await bridge.getFees(addr, amount);
+      fees = fees._hex;
+      fees = numberToString(hexToNumber(fees));
+      return fees;
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const sendLinkTokensToContract = async (tokenAmount, destaddr) => {
+    try {
+      const fees = await getfees(destaddr, tokenAmount);
+      const linkContractWithSigner = link.connect(signer);
+      const tx = await linkContractWithSigner.transfer(bridge_Address, fees);
+      await tx.wait();
+      console.log("LINK sent to contract successfully");
+    } catch (error) {
+      console.error("Sending LINK tokens to contract failed:", error);
+    }
+  };
+
+  const sendBnmTokensToContract = async (tokenAmount, destaddr) => {
+    try {
+      const bnmContractWithSigner = bnm.connect(signer);
+      const tx = await bnmContractWithSigner.transfer(
+        bridge_Address,
+        tokenAmount
       );
       await tx.wait();
-      setTxStatus("completed");
-      console.log("Tokens sent to contract successfully");
+      console.log("BNM tokens sent to contract successfully");
     } catch (error) {
-      console.error("Sending tokens to contract failed:", error);
+      console.error("Sending BNM tokens to contract failed:", error);
     }
   };
 
-  const getStatus = (txStatus) => {
-    switch (txStatus) {
-      case "initialized":
-        return "Pending";
-      case "completed":
-        return "Successfull";
-      default:
-        return "Not initialized";
-        break;
+  const transferTokensViaBridge = async (tokenAmount, destaddr) => {
+    try {
+      let response = await bridge.transferTokensPayLINK(destaddr, tokenAmount);
+      console.log(response);
+    } catch (error) {
+      console.error("Transferring tokens via bridge contract failed:", error);
     }
   };
 
-  useEffect(() => {
-    // console.log("Balance: ", ethers.utils.formatEther(balance));
-    console.log(accountAddr);
-    console.log(txStatus);
-  }, [balance, accountAddr, txStatus]);
+  const handleTransact = async (e, tokenAmount, destaddr) => {
+    e.preventDefault();
+    try {
+      let tokenAmountParsed = ethers.utils.parseUnits(
+        tokenAmount.toString(),
+        18
+      );
+      tokenAmountParsed = tokenAmountParsed._hex;
+      tokenAmountParsed = numberToString(hexToNumber(tokenAmountParsed));
+
+      await sendLinkTokensToContract(tokenAmountParsed, destaddr);
+      await sendBnmTokensToContract(tokenAmountParsed, destaddr);
+      await transferTokensViaBridge(tokenAmountParsed, destaddr);
+
+      console.log("Transaction completed successfully");
+    } catch (error) {
+      console.error("Transacting failed:", error);
+    }
+  };
 
   return (
-    <div className="container vh-100 d-flex justify-content-center align-items-center">
-      <div className="col-md-6">
-        <div className="text-center mb-">
-          <Button
-            type="submit"
-            variant="contained"
-            className="mb-3"
-            color="error"
-            onClick={(e) => {
-              connect(e);
-            }}
-          >
-            {connected ? "Connected" : "Connect to Metamask"}
-          </Button>
-        </div>
-
-        <div className="text-center mb-4">
-          <div className="mb-3">
-            <label htmlFor="accountAddr" className="form-label">
-              Connected Account
-            </label>
-            <input
-              id="accountAddr"
-              className="form-control"
-              type="text"
-              value={accountAddr}
-              aria-label="Account address"
-              disabled
-              readOnly
-            />
+    <div className="container">
+      <div className="row justify-content-center align-items-center vh-100">
+        <div className="col-md-4">
+          <div className="text-center border rounded p-4">
+            <button
+              type="submit"
+              id="c1"
+              className="btn btn-primary mb-3"
+              onClick={(e) => {
+                if (connected == true) {
+                  disconnect();
+                } else {
+                  connect();
+                }
+              }}
+            >
+              {connected == true ? "Connected" : "Connect to metamask"}
+            </button>
+            <form>
+              <div className="mb-3">
+                <label htmlFor="exampleInputEmail1" className="form-label">
+                  Destination Address
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={addr}
+                  onChange={(e) => setAddr(e.target.value)}
+                />
+              </div>
+              <div className="mb-3">
+                <label htmlFor="exampleInputPassword1" className="form-label">
+                  Amount (max 10 tokens)
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  id="exampleInputPassword1"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </div>
+            </form>
+            <button
+              type="submit"
+              className="btn btn-danger mb-3"
+              onClick={(e) => {
+                handleTransact(e, amount, addr);
+              }}
+            >
+              Transact
+            </button>
+            <div id="liveAlertPlaceholder"></div>
+            <button
+              type="button"
+              className="btn btn-primary mb-3"
+              id="liveAlertBtn"
+            >
+              Status
+            </button>
           </div>
           <div>
             <Button type="submit" variant="contained" className="mb-3">
