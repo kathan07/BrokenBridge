@@ -2,7 +2,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import linktoken_abi from "../linktoken_abi.json";
-import contract_abi from "../contract_abi.json";
+import Button from "@mui/material/Button";
 
 function App() {
   let signer;
@@ -16,6 +16,7 @@ function App() {
   const [accountAddr, setAccountAddr] = useState("");
   const [connected, setConnected] = useState(false);
   const [signerAddr, setSignerAddr] = useState(null);
+  const [txStatus, setTxStatus] = useState("not-initialized");
 
   const connect = async () => {
     try {
@@ -47,34 +48,6 @@ function App() {
     const balance = await signer.getBalance();
     setBalance(balance);
   };
-  /*
-  const approveSpending = async (e, tokenAmount) => {
-    e.preventDefault();
-    // console.log(provider);
-    try {
-      const approvedAmount = ethers.utils.parseUnits(
-        tokenAmount.toString(),
-        18
-      ); // Convert token amount to Wei
-      const tokenContractWithSigner = tokenContract.connect(signerAddr);
-      const tx = await tokenContractWithSigner.approve(
-        contractAddress,
-        approvedAmount
-      );
-      await tx.wait();
-      console.log("Approval successful");
-    } catch (error) {
-      console.error("Approval failed:", error);
-    }
-  };
-*/
-  // const sendTransaction = async (amount) => {
-  //   const tx = await signer.sendTransaction({
-  //     to: contractAddress,
-  //     value: ethers.utils.parseUnits(amount, "ether"),
-  //   });
-  //   console.log(tx);
-  // };
 
   const sendTokensToContract = async (e, tokenAmount) => {
     e.preventDefault();
@@ -86,81 +59,120 @@ function App() {
         amountToSend
       );
       await tx.wait();
+      setTxStatus("completed");
       console.log("Tokens sent to contract successfully");
     } catch (error) {
       console.error("Sending tokens to contract failed:", error);
     }
   };
 
+  const getStatus = (txStatus) => {
+    switch (txStatus) {
+      case "initialized":
+        return "Pending";
+      case "completed":
+        return "Successfull";
+      default:
+        return "Not initialized";
+        break;
+    }
+  };
+
   useEffect(() => {
     // console.log("Balance: ", ethers.utils.formatEther(balance));
-  }, [balance]);
+    console.log(accountAddr);
+    console.log(txStatus);
+  }, [balance, accountAddr, txStatus]);
 
   return (
-    <div className="container">
-      <div className="row justify-content-center align-items-center vh-100">
-        <div className="col-md-4">
-          <div className="text-center border rounded p-4">
-            <button
-              type="submit"
-              id="c1"
-              className="btn btn-primary mb-3"
-              onClick={(e) => {
-                connect(e);
-              }}
-            >
-              {connected == true ? "Connected" : "Connect to metamask"}
-            </button>
-            <form>
-              <div className="mb-3">
-                <label htmlFor="exampleInputEmail1" className="form-label">
-                  Destination Address
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="exampleInputEmail1"
-                  aria-describedby="emailHelp"
-                  value={addr}
-                  onChange={(e) => setAddr(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="exampleInputPassword1" className="form-label">
-                  Amount (max 10 tokens)
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="exampleInputPassword1"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-            </form>
-            <button
-              type="submit"
-              className="btn btn-danger mb-3"
-              onClick={(e) => {
-                // console.log(addr);
-                // console.log(amount);
-                // approveSpending(e, amount);
-                sendTokensToContract(e, amount);
-                setAddr("");
-                setAmount("");
-              }}
-            >
-              Transact
-            </button>
-            <div id="liveAlertPlaceholder"></div>
-            <button
-              type="button"
-              className="btn btn-primary mb-3"
-              id="liveAlertBtn"
-            >
-              Status
-            </button>
+    <div className="container vh-100 d-flex justify-content-center align-items-center">
+      <div className="col-md-6">
+        <div className="text-center mb-">
+          <Button
+            type="submit"
+            variant="contained"
+            className="mb-3"
+            color="error"
+            onClick={(e) => {
+              connect(e);
+            }}
+          >
+            {connected ? "Connected" : "Connect to Metamask"}
+          </Button>
+        </div>
+
+        <div className="text-center mb-4">
+          <div className="mb-3">
+            <label htmlFor="accountAddr" className="form-label">
+              Connected Account
+            </label>
+            <input
+              id="accountAddr"
+              className="form-control"
+              type="text"
+              value={accountAddr}
+              aria-label="Account address"
+              disabled
+              readOnly
+            />
           </div>
+          <div>
+            <Button type="submit" variant="contained" className="mb-3">
+              Balance: {ethers.utils.formatUnits(balance, 18)}
+            </Button>
+          </div>
+        </div>
+
+        <div className="text-center border rounded p-4">
+          <form>
+            <div className="mb-3">
+              <label htmlFor="exampleInputEmail1" className="form-label">
+                Destination Address
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="exampleInputEmail1"
+                aria-describedby="emailHelp"
+                value={addr}
+                onChange={(e) => setAddr(e.target.value)}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="exampleInputPassword1" className="form-label">
+                Amount
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                id="exampleInputPassword1"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+          </form>
+          <Button
+            type="submit"
+            className="btn btn-danger mb-3"
+            variant="contained"
+            color="error"
+            onClick={(e) => {
+              sendTokensToContract(e, amount);
+              setAddr("");
+              setAmount("");
+              setTxStatus("initialized");
+            }}
+          >
+            Transact
+          </Button>
+          <div id="liveAlertPlaceholder"></div>
+          <button
+            type="button"
+            className="btn btn-primary mb-3"
+            id="liveAlertBtn"
+          >
+            status: {getStatus(txStatus)}
+          </button>
         </div>
       </div>
     </div>
