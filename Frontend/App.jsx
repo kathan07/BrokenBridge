@@ -1,9 +1,10 @@
-import "bootstrap/dist/css/bootstrap.min.css";
 import { useState } from "react";
 import { ethers } from "ethers";
 import link_abi from "../link_abi.json";
 import bridge_abi from "../bridge_abi.json";
 import bnm_abi from "../bnm_abi.json";
+import "./App.css";
+
 
 function App() {
   const bridge_Address = "0xE5303408f154c00907F7AEbdBe492198694f7411";
@@ -143,76 +144,7 @@ function App() {
       console.error("Transacting failed:", error);
     }
   };
-
-  return (
-    <div className="container">
-      <div className="row justify-content-center align-items-center vh-100">
-        <div className="col-md-4">
-          <div className="text-center border rounded p-4">
-            <button
-              type="submit"
-              id="c1"
-              className="btn btn-primary mb-3"
-              onClick={(e) => {
-                if(connected === true){
-                  disconnect();
-                }
-                else{
-                  connect();
-                }
-              }}
-            >
-              {connected == true ? "Connected" : "Connect to metamask"}
-            </button>
-            <form>
-              <div className="mb-3">
-                <label htmlFor="exampleInputEmail1" className="form-label">
-                  Destination Address
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="exampleInputEmail1"
-                  aria-describedby="emailHelp"
-                  value={addr}
-                  onChange={(e) => setAddr(e.target.value)}
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="exampleInputPassword1" className="form-label">
-                  Amount (max 10 tokens)
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="exampleInputPassword1"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-            </form>
-            <button
-              type="submit"
-              className="btn btn-danger mb-3"
-              onClick={(e) => {
-                handleTransact(e, amount,addr);
-              }}
-            >
-              Transact
-            </button>
-            <div id="liveAlertPlaceholder"></div>
-            <button
-              type="button"
-              className="btn btn-primary mb-3"
-              id="liveAlertBtn"
-            >
-              Status
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <></>;
 }
 
 export default App;
