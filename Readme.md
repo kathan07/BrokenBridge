@@ -1,5 +1,3 @@
-Sure, here's a detailed README file for your project:
-
 # Broken Bridge
 
 Broken Bridge is a decentralized application (DApp) that facilitates the transfer of CCIP-BnM tokens from the Sepolia Ethereum testnet to the BNB Smart Chain testnet. The project aims to create a decentralized bridge between these two blockchain networks, leveraging the Cross-Chain Interoperability Protocol (CCIP) offered by Chainlink.
